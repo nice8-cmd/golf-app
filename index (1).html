@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Golf出品">
+<meta name="theme-color" content="#0a0a0a">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com; font-src 'self' data:;">
+<title>Golf 出品ジェネレーター</title>
+<style>
+:root{
+  --bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#242424;--bg4:#2e2e2e;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+  --text:#f0f0f0;--text2:#a0a0a0;--text3:#606060;
+  --green:#34c759;--green-bg:rgba(52,199,89,0.12);--green-border:rgba(52,199,89,0.3);
+  --blue:#0a84ff;--blue-bg:rgba(10,132,255,0.12);--blue-border:rgba(10,132,255,0.3);
+  --red:#ff453a;--red-bg:rgba(255,69,58,0.12);--red-border:rgba(255,69,58,0.3);
+  --yellow:#ffd60a;
+  --radius:14px;--radius-sm:10px;
+  --safe-top:env(safe-area-inset-top,44px);--safe-bottom:env(safe-area-inset-bottom,20px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,'Hiragino Sans',sans-serif;overflow:hidden;}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+
+/* Header */
+.header{padding:calc(var(--safe-top)+12px) 20px 12px;background:rgba(15,15,15,0.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border);flex-shrink:0;}
+.app-title{font-size:20px;font-weight:700;letter-spacing:-0.5px;}
+.app-title span{color:var(--green);}
+.header-sub{font-size:12px;color:var(--text3);margin-top:2px;}
+
+/* Folder nav */
+.folder-nav{display:flex;gap:6px;padding:10px 16px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.folder-nav::-webkit-scrollbar{display:none;}
+.folder-btn{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:500;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.folder-btn.active{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+.folder-btn .f-icon{font-size:13px;}
+.folder-btn-add{border-style:dashed;color:var(--text3);}
+
+/* Template list inside folder */
+.tmpl-bar{display:flex;gap:6px;padding:8px 16px;background:var(--bg2);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tmpl-bar::-webkit-scrollbar{display:none;}
+.tmpl-btn{flex-shrink:0;padding:5px 12px;border-radius:16px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tmpl-btn.active{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue);}
+.tmpl-btn-add{border-style:dashed;color:var(--text3);}
+.tmpl-btn-edit{color:var(--text3);}
+.tmpl-btn-edit.active{background:var(--yellow-bg,rgba(255,214,10,0.1));border-color:rgba(255,214,10,0.3);color:var(--yellow);}
+
+/* Content */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(var(--safe-bottom)+16px);}
+
+/* Upload */
+.upload-area{border:1.5px dashed var(--border2);border-radius:var(--radius);background:var(--bg2);padding:28px 16px;text-align:center;cursor:pointer;margin-bottom:12px;transition:background 0.15s;}
+.upload-area:active{background:var(--bg3);}
+.upload-area-icon{font-size:32px;margin-bottom:8px;}
+.upload-area-txt{font-size:15px;color:var(--text);font-weight:500;margin-bottom:4px;}
+.upload-area-sub{font-size:12px;color:var(--text3);}
+.img-status{font-size:12px;color:var(--green);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.img-status-add{font-size:12px;color:var(--blue);cursor:pointer;}
+.slots-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.slot{aspect-ratio:1;border-radius:var(--radius-sm);border:1.5px solid var(--green-border);background:var(--bg2);position:relative;overflow:hidden;}
+.slot img{width:100%;height:100%;object-fit:cover;}
+.slot-del{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.7);border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* Buttons */
+.btn-generate{width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:600;cursor:pointer;transition:opacity 0.18s,transform 0.1s;}
+.btn-generate:active{transform:scale(0.98);opacity:0.85;}
+.btn-generate:disabled{background:var(--bg4);color:var(--text3);}
+.btn-test{width:100%;margin-top:8px;padding:10px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text3);font-size:13px;cursor:pointer;}
+
+/* Progress */
+.progress-wrap{display:none;margin-top:16px;}
+.progress-step{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:8px;background:var(--bg2);border:0.5px solid var(--border);transition:all 0.3s;}
+.progress-step.active{border-color:var(--blue-border);background:var(--blue-bg);}
+.progress-step.done{border-color:var(--green-border);background:var(--green-bg);}
+.step-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.step-text{font-size:13px;color:var(--text2);}
+.progress-step.active .step-text{color:var(--blue);}
+.progress-step.done .step-text{color:var(--green);}
+.mini-spinner{width:16px;height:16px;border:2px solid var(--blue-border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.75s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Result */
+.error-card{display:none;margin-top:12px;padding:12px 14px;background:var(--red-bg);border:0.5px solid var(--red-border);border-radius:var(--radius-sm);}
+.error-title{font-size:12px;font-weight:600;color:var(--red);margin-bottom:4px;}
+.error-body{font-size:11px;color:var(--red);font-family:monospace;white-space:pre-wrap;word-break:break-all;}
+.result-card{display:none;margin-top:14px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);overflow:hidden;}
+.result-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--border);}
+.result-label{font-size:12px;color:var(--text2);font-weight:500;}
+.btn-copy{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;background:var(--blue-bg);border:0.5px solid var(--blue-border);color:var(--blue);cursor:pointer;}
+.result-body{padding:14px;font-size:13px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-word;}
+.copied-msg{font-size:11px;color:var(--green);text-align:center;padding:6px;display:none;}
+.source-box{margin-top:10px;padding:10px 14px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);}
+.source-label{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500;}
+.source-item{display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;}
+.source-dot{font-size:11px;color:var(--yellow);flex-shrink:0;}
+.source-link{font-size:11px;color:var(--blue);word-break:break-all;line-height:1.5;text-decoration:none;}
+
+/* Edit panels */
+.edit-panel{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+.edit-label{font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
+.edit-row{display:flex;gap:8px;margin-bottom:10px;align-items:center;}
+.input-field{flex:1;padding:10px 12px;border-radius:var(--radius-sm);background:var(--bg3);border:0.5px solid var(--border2);color:var(--text);font-size:14px;outline:none;-webkit-appearance:none;}
+.input-field:focus{border-color:var(--blue-border);}
+.btn-save{padding:10px 14px;border-radius:var(--radius-sm);background:var(--blue-bg);border:0.5px solid var(--blue-border);color:var(--blue);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.btn-del{padding:10px 12px;border-radius:var(--radius-sm);background:var(--red-bg);border:0.5px solid var(--red-border);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;}
+.textarea-field{width:100%;min-height:260px;padding:12px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;line-height:1.65;font-family:'Menlo',monospace;resize:vertical;outline:none;-webkit-appearance:none;}
+.textarea-field:focus{border-color:var(--blue-border);}
+.edit-hint{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;}
+.saved-toast{font-size:11px;color:var(--green);display:none;}
+.sync-bar{display:flex;gap:8px;padding:8px 16px;background:var(--bg2);border-bottom:0.5px solid var(--border);flex-shrink:0;align-items:center;}
+.sync-btn{flex:1;padding:8px 10px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text2);text-align:center;}
+.sync-btn.export{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.sync-btn.import{border-color:var(--blue-border);color:var(--blue);background:var(--blue-bg);}
+.sync-label{font-size:11px;color:var(--text3);white-space:nowrap;}
+.section-title{font-size:13px;color:var(--text2);font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid var(--border);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="app-title">Golf <span>出品</span> AI</div>
+    <div class="header-sub">画像解析＋ネット検索で高精度生成</div>
+  </div>
+
+  <!-- フォルダ行 -->
+  <div class="folder-nav" id="folderNav"></div>
+  <!-- 同期バー -->
+  <div class="sync-bar">
+    <span class="sync-label">同期:</span>
+    <button class="sync-btn export" onclick="exportData()">📤 書き出し</button>
+    <button class="sync-btn import" onclick="showImportDialog()">📥 読み込み</button>
+  </div>
+  <!-- 読み込みダイアログ -->
+  <div id="importDialog" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.7);padding:20px;align-items:center;justify-content:center;">
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:20px;width:100%;max-width:500px;border:0.5px solid var(--border2);">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">📥 テンプレートを読み込む</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">書き出したJSONテキストをそのまま貼り付けてください</div>
+      <textarea id="importTextarea" style="width:100%;height:160px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:10px;font-family:var(--font-mono,monospace);resize:none;outline:none;" placeholder='[{"id":"f1","name":"フォルダ名","templates":[...]}]'></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="doImport()" style="flex:1;padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;">読み込む</button>
+        <button onclick="hideImportDialog()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;cursor:pointer;">キャンセル</button>
+      </div>
+    </div>
+  </div>
+  <!-- テンプレート行 -->
+  <div class="tmpl-bar" id="tmplBar"></div>
+
+  <div class="content">
+    <!-- メイン -->
+    <div id="mainSection">
+      <input type="file" id="fileMulti" accept="image/*" multiple style="display:none">
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileMulti').click()">
+        <div class="upload-area-icon">📷</div>
+        <div class="upload-area-txt">タップして画像を選択</div>
+        <div class="upload-area-sub">複数枚まとめて選択できます（最大3枚）</div>
+      </div>
+      <div class="img-status" id="imgStatus" style="display:none">
+        <span id="imgStatusTxt"></span>
+        <span class="img-status-add" onclick="document.getElementById('fileMulti').click()">変更する</span>
+      </div>
+      <div class="slots-grid" id="slotsGrid" style="display:none"></div>
+      <button class="btn-generate" id="genBtn" disabled onclick="generate()">✦ 出品文を生成する</button>
+      <button class="btn-test" id="testBtn" onclick="testConnection()">接続テスト</button>
+
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-step" id="step1"><div class="step-icon">📷</div><div class="step-text">画像を解析中...</div></div>
+        <div class="progress-step" id="step2"><div class="step-icon">🔍</div><div class="step-text">ネットで情報を検索中...</div></div>
+        <div class="progress-step" id="step3"><div class="step-icon">✍️</div><div class="step-text">出品文を生成中...</div></div>
+      </div>
+      <div class="error-card" id="errorCard"><div class="error-title">エラーが発生しました</div><div class="error-body" id="errorBody"></div></div>
+      <div class="result-card" id="resultCard">
+        <div class="result-header"><div class="result-label">生成された出品文</div><button class="btn-copy" onclick="copyResult()">コピー</button></div>
+        <div class="result-body" id="resultBody"></div>
+        <div class="copied-msg" id="copiedMsg">✓ コピーしました</div>
+        <div class="source-box" id="sourceBox"><div class="source-label">📎 参照したデータソース</div><div id="sourceList"></div></div>
+      </div>
+    </div>
+
+    <!-- フォルダ編集 -->
+    <div id="folderEditSection" style="display:none">
+      <div class="edit-panel">
+        <div class="section-title">フォルダ設定</div>
+        <div class="edit-label">フォルダ名</div>
+        <div class="edit-row">
+          <input class="input-field" id="folderEditName" placeholder="フォルダ名">
+          <button class="btn-save" onclick="saveFolder()">保存<span class="saved-toast" id="folderSavedToast"> ✓</span></button>
+          <button class="btn-del" onclick="deleteFolder()">削除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- テンプレート編集 -->
+    <div id="tmplEditSection" style="display:none">
+      <div class="edit-panel">
+        <div class="section-title">テンプレート設定</div>
+        <div class="edit-label">テンプレート名</div>
+        <div class="edit-row">
+          <input class="input-field" id="tmplEditName" placeholder="テンプレート名">
+          <button class="btn-save" onclick="saveTmpl()">保存<span class="saved-toast" id="tmplSavedToast"> ✓</span></button>
+          <button class="btn-del" onclick="deleteTmpl()">削除</button>
+        </div>
+        <div class="edit-label" style="margin-top:10px">テンプレート本文</div>
+        <textarea class="textarea-field" id="tmplEditBody"></textarea>
+        <div class="edit-hint">※ [] と [英語]/[日本語] の部分のみAIが自動補完します。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY='golf_v2';
+
+// ---- データ構造 ----
+// folders: [{id, name, templates:[{id,name,body}]}]
+const DEFAULT_DATA=[{
+  id:'f1', name:'アイアン単品',
+  templates:[{
+    id:'t1', name:'メンズアイアン単品',
+    body:`[メーカー名英語] [モデル名英語] [番手]番 コース未使用品
+グリップ新品、コース未使用品です。
+一点限り、匿名配送、送料無料です。
+プチプチと綺麗なダンボール箱に入れてお届けいたします。
+[]年モデル
+■メーカー：[英語] / [日本語]
+■ ヘッド：[英語] / [日本語]
+■ 利き手：右利き
+■ 性別：男性用 メンズ
+■ 番手：[]番
+■ ロフト角(°)メーカー公表値：[]
+■ ライ角(°)メーカー公表値：[]
+■ シャフト：[]
+振動数 実測
+バランス ±
+■ フレックス(Flex)：
+■ グリップ：新品karma スタンダード グリップ 約55g± ブラック(質感は、ゴルフプライドのツアーベルベットに近いです。) グリップ交換をすると数千円かかるので、お得です。
+■ クラブ長(実測)：約インチ
+■ クラブ重量(実測)：約g
+■簡易清掃済み
+気持ちよくお使いいただく為に、出来る限り綺麗にした後に、ヘッド、シャフト、グリップともに除菌シートで拭いてあります。
+状態
+コース未使用品ですが、当たり傷、傷などあります。画像でご確認ください。
+※全国送料無料、匿名配送です。
+※発送に致しましては、プチプチにて傷がつかないよう十分注意して、ダンボール箱に入れて発送致します。
+※即購入大歓迎です。
+ゴルフクラブを多数出品しております。
+よろしければ
+#しぇいゴルフ
+↑こちらをクリックしてご覧ください。
+ご質問等ございましたらお気軽にコメント頂けると嬉しいです。
+管理番号
+#iron
+#単品販売
+#バラ売り
+#golfclub
+#ゴルフ練習器具
+#1P
+#1本`
+  }]
+}];
+
+function loadData(){try{const s=JSON.parse(localStorage.getItem(STORE_KEY));return(s&&s.length)?s:DEFAULT_DATA;}catch(e){return DEFAULT_DATA;}}
+function saveData(){try{localStorage.setItem(STORE_KEY,JSON.stringify(folders));}catch(e){}}
+
+let folders=loadData();
+let activeFolderId=folders[0].id;
+let activeTmplId=folders[0].templates[0]?.id||null;
+let folderEditMode=false;
+let tmplEditMode=false;
+let images=[null,null,null];
+
+function getFolder(id){return folders.find(f=>f.id===id);}
+function getActiveTmpl(){
+  const f=getFolder(activeFolderId);
+  if(!f)return null;
+  return f.templates.find(t=>t.id===activeTmplId)||f.templates[0]||null;
+}
+
+// ---- Render ----
+function render(){
+  renderFolderNav();
+  renderTmplBar();
+  renderPanels();
+}
+
+function renderFolderNav(){
+  const nav=document.getElementById('folderNav');
+  nav.innerHTML='';
+  folders.forEach(f=>{
+    const b=document.createElement('button');
+    b.className='folder-btn'+(f.id===activeFolderId&&!folderEditMode?' active':'');
+    b.innerHTML='<span class="f-icon">📁</span>'+f.name;
+    b.onclick=()=>selectFolder(f.id);
+    nav.appendChild(b);
+  });
+  // フォルダ追加
+  const addB=document.createElement('button');
+  addB.className='folder-btn folder-btn-add';
+  addB.innerHTML='<span class="f-icon">＋</span>フォルダ追加';
+  addB.onclick=addFolder;
+  nav.appendChild(addB);
+  // フォルダ編集
+  const editB=document.createElement('button');
+  editB.className='folder-btn'+(folderEditMode?' active':'');
+  editB.innerHTML='<span class="f-icon">'+(folderEditMode?'✕':'✎')+'</span>'+(folderEditMode?'閉じる':'フォルダ編集');
+  editB.onclick=toggleFolderEdit;
+  nav.appendChild(editB);
+}
+
+function renderTmplBar(){
+  const bar=document.getElementById('tmplBar');
+  bar.innerHTML='';
+  const f=getFolder(activeFolderId);
+  if(!f){bar.style.display='none';return;}
+  bar.style.display='flex';
+  f.templates.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='tmpl-btn'+(t.id===activeTmplId&&!tmplEditMode?' active':'');
+    b.textContent=t.name;
+    b.onclick=()=>selectTmpl(t.id);
+    bar.appendChild(b);
+  });
+  // テンプレート追加
+  const addB=document.createElement('button');
+  addB.className='tmpl-btn tmpl-btn-add';
+  addB.textContent='＋ 追加';
+  addB.onclick=addTmpl;
+  bar.appendChild(addB);
+  // テンプレート編集
+  const editB=document.createElement('button');
+  editB.className='tmpl-btn tmpl-btn-edit'+(tmplEditMode?' active':'');
+  editB.textContent=tmplEditMode?'✕ 閉じる':'✎ 編集';
+  editB.onclick=toggleTmplEdit;
+  bar.appendChild(editB);
+}
+
+function renderPanels(){
+  const main=document.getElementById('mainSection');
+  const fEdit=document.getElementById('folderEditSection');
+  const tEdit=document.getElementById('tmplEditSection');
+  main.style.display='none'; fEdit.style.display='none'; tEdit.style.display='none';
+  if(folderEditMode){
+    fEdit.style.display='block';
+    const f=getFolder(activeFolderId);
+    if(f) document.getElementById('folderEditName').value=f.name;
+  } else if(tmplEditMode){
+    tEdit.style.display='block';
+    const t=getActiveTmpl();
+    if(t){document.getElementById('tmplEditName').value=t.name;document.getElementById('tmplEditBody').value=t.body;}
+  } else {
+    main.style.display='block';
+  }
+}
+
+// ---- Folder actions ----
+function selectFolder(id){
+  activeFolderId=id;
+  folderEditMode=false;tmplEditMode=false;
+  const f=getFolder(id);
+  activeTmplId=f?.templates[0]?.id||null;
+  clearResult();render();
+}
+function toggleFolderEdit(){
+  folderEditMode=!folderEditMode;
+  if(folderEditMode)tmplEditMode=false;
+  render();
+}
+function saveFolder(){
+  const f=getFolder(activeFolderId);if(!f)return;
+  f.name=document.getElementById('folderEditName').value.trim()||f.name;
+  saveData();render();
+  const t=document.getElementById('folderSavedToast');t.style.display='inline';
+  setTimeout(()=>{t.style.display='none';},2000);
+}
+function deleteFolder(){
+  if(folders.length<=1){alert('最低1つのフォルダが必要です');return;}
+  if(!confirm('このフォルダとテンプレートをすべて削除しますか？'))return;
+  folders=folders.filter(f=>f.id!==activeFolderId);
+  activeFolderId=folders[0].id;
+  activeTmplId=folders[0].templates[0]?.id||null;
+  folderEditMode=false;saveData();clearResult();render();
+}
+function addFolder(){
+  const id='f'+Date.now();
+  folders.push({id,name:'新しいフォルダ',templates:[{id:'t'+Date.now(),name:'テンプレート1',body:'[商品名]\n\n■ メーカー：[英語] / [日本語]\n■ 状態：[]\n\n管理番号'}]});
+  activeFolderId=id;
+  activeTmplId=folders[folders.length-1].templates[0].id;
+  folderEditMode=true;tmplEditMode=false;
+  saveData();clearResult();render();
+}
+
+// ---- Template actions ----
+function selectTmpl(id){
+  activeTmplId=id;tmplEditMode=false;clearResult();render();
+}
+function toggleTmplEdit(){
+  tmplEditMode=!tmplEditMode;
+  if(tmplEditMode)folderEditMode=false;
+  render();
+}
+function saveTmpl(){
+  const f=getFolder(activeFolderId);if(!f)return;
+  const t=f.templates.find(t=>t.id===activeTmplId);if(!t)return;
+  t.name=document.getElementById('tmplEditName').value.trim()||t.name;
+  t.body=document.getElementById('tmplEditBody').value;
+  saveData();render();
+  const toast=document.getElementById('tmplSavedToast');toast.style.display='inline';
+  setTimeout(()=>{toast.style.display='none';},2000);
+}
+function deleteTmpl(){
+  const f=getFolder(activeFolderId);if(!f)return;
+  if(f.templates.length<=1){alert('最低1つのテンプレートが必要です');return;}
+  if(!confirm('このテンプレートを削除しますか？'))return;
+  f.templates=f.templates.filter(t=>t.id!==activeTmplId);
+  activeTmplId=f.templates[0].id;
+  tmplEditMode=false;saveData();clearResult();render();
+}
+function addTmpl(){
+  const f=getFolder(activeFolderId);if(!f)return;
+  const id='t'+Date.now();
+  f.templates.push({id,name:'新テンプレート',body:'[商品名]\n\n■ メーカー：[英語] / [日本語]\n■ 状態：[]\n\n管理番号'});
+  activeTmplId=id;tmplEditMode=true;folderEditMode=false;
+  saveData();clearResult();render();
+}
+
+// ---- Image ----
+function updateImageUI(){
+  const n=images.filter(Boolean).length;
+  const area=document.getElementById('uploadArea');
+  const status=document.getElementById('imgStatus');
+  const txt=document.getElementById('imgStatusTxt');
+  const grid=document.getElementById('slotsGrid');
+  if(n===0){area.style.display='block';status.style.display='none';grid.style.display='none';}
+  else{
+    area.style.display='none';status.style.display='flex';
+    txt.textContent=n+'枚選択中';grid.style.display='grid';
+    grid.innerHTML='';
+    images.forEach((img,i)=>{
+      if(!img)return;
+      const slot=document.createElement('div');slot.className='slot';
+      const im=document.createElement('img');im.src=img.dataUrl;
+      const del=document.createElement('button');del.className='slot-del';del.textContent='✕';
+      del.onclick=()=>{images[i]=null;images=images.filter(Boolean);while(images.length<3)images.push(null);updateImageUI();clearResult();};
+      slot.appendChild(im);slot.appendChild(del);grid.appendChild(slot);
+    });
+  }
+  document.getElementById('genBtn').disabled=n===0;
+}
+
+const MAX_BYTES=4*1024*1024,MAX_SIZE=1920;
+function compressImage(file){
+  return new Promise(resolve=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>MAX_SIZE||h>MAX_SIZE){if(w>h){h=Math.round(h*MAX_SIZE/w);w=MAX_SIZE;}else{w=Math.round(w*MAX_SIZE/h);h=MAX_SIZE;}}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        let q=0.85;
+        const go=()=>{const d=c.toDataURL('image/jpeg',q);const b64=d.split(',')[1];if(Math.ceil(b64.length*3/4)>MAX_BYTES&&q>0.3){q-=0.1;go();}else resolve({base64:b64,mime:'image/jpeg',dataUrl:d});};
+        go();
+      };img.src=e.target.result;
+    };r.readAsDataURL(file);
+  });
+}
+
+document.getElementById('fileMulti').addEventListener('change',async e=>{
+  const files=Array.from(e.target.files).slice(0,3);
+  if(!files.length)return;
+  images=[null,null,null];
+  for(let i=0;i<files.length;i++){if(files[i].type.startsWith('image/'))images[i]=await compressImage(files[i]);}
+  e.target.value='';updateImageUI();clearResult();
+});
+
+// ---- API ----
+async function apiPost(body){
+  let res,raw;
+  try{res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
+  catch(e){throw new Error('接続失敗: '+e.message);}
+  try{raw=await res.text();}catch(e){throw new Error('読み取り失敗: '+e.message);}
+  if(!raw||raw.trim()==='')throw new Error('応答が空です (HTTP '+res.status+')\nCORSによりブロックされている可能性があります');
+  let data;
+  try{data=JSON.parse(raw);}catch(e){throw new Error('HTTP '+res.status+'\n'+raw.slice(0,300));}
+  if(data.error)throw new Error('APIエラー ['+data.error.type+']\n'+data.error.message);
+  if(!data.content||!data.content.length)throw new Error('空のコンテンツ (stop_reason: '+data.stop_reason+')');
+  return data;
+}
+async function callClaude(messages){return await apiPost({model:'claude-sonnet-4-20250514',max_tokens:2000,messages});}
+
+let lastSourceUrls=[];
+async function callClaudeWithSearch(userText){
+  const MAX_TURNS=8;let messages=[{role:'user',content:[{type:'text',text:userText}]}];
+  const tools=[{type:'web_search_20250305',name:'web_search'}];
+  lastSourceUrls=[];
+  for(let turn=0;turn<MAX_TURNS;turn++){
+    const data=await apiPost({model:'claude-sonnet-4-20250514',max_tokens:2000,messages,tools});
+    if(data.stop_reason!=='tool_use'){
+      const txt=data.content.filter(c=>c.type==='text').map(c=>c.text).join('');
+      const urls=txt.match(/https?:\/\/[^\s\)\"\'>\]]+/g)||[];
+      lastSourceUrls=[...new Set(urls)].slice(0,5);
+      return txt.trim();
+    }
+    messages.push({role:'assistant',content:data.content});
+    data.content.filter(c=>c.type==='tool_use').forEach(c=>{if(c.input?.query)lastSourceUrls.push('検索: '+c.input.query);});
+    const results=data.content.filter(c=>c.type==='tool_use').map(c=>({type:'tool_result',tool_use_id:c.id,content:''}));
+    messages.push({role:'user',content:results});
+  }
+  return '';
+}
+
+function extractText(data){if(!data||!data.content)return '';return data.content.filter(c=>c.type==='text').map(c=>c.text).join('').trim();}
+
+const STEP_ICONS=['','📷','🔍','✍️'];
+function setStep(n,state){
+  const el=document.getElementById('step'+n);if(!el)return;
+  el.className='progress-step';
+  const oldSp=el.querySelector('.mini-spinner');if(oldSp)oldSp.remove();
+  const icon=el.querySelector('.step-icon');const txt=el.querySelector('.step-text');
+  if(state==='active'){
+    el.classList.add('active');if(icon)icon.style.visibility='hidden';
+    const sp=document.createElement('div');sp.className='mini-spinner';el.insertBefore(sp,txt);
+  } else {
+    if(icon){icon.style.visibility='visible';}
+    if(state==='done'){el.classList.add('done');if(icon)icon.textContent='✓';}
+    else{if(icon)icon.textContent=STEP_ICONS[n]||'';}
+  }
+}
+
+function clearResult(){
+  document.getElementById('resultCard').style.display='none';
+  document.getElementById('errorCard').style.display='none';
+  document.getElementById('progressWrap').style.display='none';
+  document.getElementById('sourceBox').style.display='none';
+  document.getElementById('sourceList').innerHTML='';
+}
+
+async function generate(){
+  const loaded=images.filter(Boolean);if(!loaded.length)return;
+  const tmpl=getActiveTmpl();if(!tmpl)return;
+  document.getElementById('genBtn').disabled=true;
+  document.getElementById('progressWrap').style.display='block';
+  document.getElementById('resultCard').style.display='none';
+  document.getElementById('errorCard').style.display='none';
+  [1,2,3].forEach(n=>{
+    const el=document.getElementById('step'+n);if(!el)return;
+    el.className='progress-step';
+    const sp=el.querySelector('.mini-spinner');if(sp)sp.remove();
+    const icon=el.querySelector('.step-icon');if(icon){icon.style.visibility='visible';icon.textContent=STEP_ICONS[n]||'';}
+    const txt=el.querySelector('.step-text');if(txt)txt.textContent=['','画像を解析中...','ネットで情報を検索中...','出品文を生成中...'][n];
+  });
+  try{
+    setStep(1,'active');
+    const imageBlocks=loaded.map(img=>({type:'image',source:{type:'base64',media_type:img.mime,data:img.base64}}));
+    const s1=await callClaude([{role:'user',content:[...imageBlocks,{type:'text',text:`このゴルフクラブの画像から読み取れる情報をすべて箇条書きで教えてください。文字が不鮮明でも推測して記載してください。メーカー名、モデル名、シャフト名、番手、ロフト角、ライ角、フレックス、年式など。`}]}]);
+    const rawText=extractText(s1);
+    setStep(1,'done');
+
+    setStep(2,'active');
+    const verifiedText=(await callClaudeWithSearch(`以下はゴルフクラブの画像から読み取った情報です（文字認識に誤りがある可能性があります）:\n\n${rawText}\n\nウェブ検索を使って、メーカー名・モデル名・シャフト名などの正式な表記を確認・修正してください。特にシャフト名はブランド名が似た文字で誤読されやすいので注意して検索してください。確認できた正式な情報を箇条書きでまとめてください。`))||rawText;
+    setStep(2,'done');
+
+    setStep(3,'active');
+    const s3=await callClaude([{role:'user',content:[{type:'text',text:`以下の確認済みゴルフクラブ情報を使って、テンプレートの [] 部分を補完してください。\n\n確認済み情報:\n${verifiedText}\n\n【厳守ルール】\n1. [] と表記されている箇所のみデータを入力してください。\n2. [英語] / [日本語] と表記されている箇所は、左に英語表記、右に日本語表記を入れてください。\n3. [] 以外の文字・記号・改行・句読点は一切変更しないでください。\n4. 情報がない箇所は [] のまま空欄にしてください。\n5. 説明文や補足は一切不要です。完成したテンプレート本文のみ出力してください。\n\nテンプレート：\n${tmpl.body}`}]}]);
+    setStep(3,'done');
+    const finalText=extractText(s3);
+    if(!finalText)throw new Error('出品文の生成に失敗しました。もう一度お試しください。');
+    document.getElementById('resultBody').textContent=finalText;
+    document.getElementById('resultCard').style.display='block';
+    showSources(lastSourceUrls);
+    document.getElementById('resultCard').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    document.getElementById('errorBody').textContent=e.message;
+    document.getElementById('errorCard').style.display='block';
+  }finally{
+    document.getElementById('genBtn').disabled=images.filter(Boolean).length===0;
+  }
+}
+
+function showSources(urls){
+  const box=document.getElementById('sourceBox');
+  const list=document.getElementById('sourceList');
+  box.style.display='block';
+  list.innerHTML='';
+
+  const validUrls=(urls||[]).filter(u=>{
+    try{ new URL(u); return u.startsWith('http')&&u.length>20; }catch(e){ return false; }
+  });
+
+  if(!validUrls.length){
+    const msg=document.createElement('div');
+    msg.style.cssText='font-size:11px;color:var(--text3);padding:2px 0;';
+    msg.textContent='参照URLを取得できませんでした';
+    list.appendChild(msg);
+    return;
+  }
+
+  validUrls.forEach(url=>{
+    const item=document.createElement('div');
+    item.className='source-item';
+    item.style.marginBottom='6px';
+    const dot=document.createElement('span');
+    dot.className='source-dot';dot.textContent='• ';
+    const link=document.createElement('a');
+    link.className='source-link';
+    link.href=url;link.target='_blank';
+    try{
+      const u=new URL(url);
+      link.textContent=u.hostname+(u.pathname!='/'?u.pathname:'');
+      link.title=url;
+    }catch(e){link.textContent=url;}
+    item.appendChild(dot);item.appendChild(link);
+    list.appendChild(item);
+  });
+}
+
+function copyResult(){
+  const text=document.getElementById('resultBody').textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>{const el=document.getElementById('copiedMsg');el.style.display='block';setTimeout(()=>{el.style.display='none';},2000);});}
+  else{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
+}
+
+async function testConnection(){
+  const btn=document.getElementById('testBtn');
+  btn.textContent='テスト中...';btn.disabled=true;
+  try{
+    await callClaude([{role:'user',content:[{type:'text',text:'「OK」とだけ返してください'}]}]);
+    btn.textContent='✓ 接続OK';btn.style.color='var(--green)';
+    setTimeout(()=>{btn.textContent='接続テスト';btn.style.color='';btn.disabled=false;},3000);
+  }catch(e){
+    btn.textContent='✕ 失敗';btn.style.color='var(--red)';
+    document.getElementById('errorBody').textContent=e.message;
+    document.getElementById('errorCard').style.display='block';
+    setTimeout(()=>{btn.textContent='接続テスト';btn.style.color='';btn.disabled=false;},3000);
+  }
+}
+
+// ---- Export / Import ----
+function exportData(){
+  const json=JSON.stringify(folders,null,2);
+  // クリップボードにコピー
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(json).then(()=>{
+      alert('テンプレートデータをクリップボードにコピーしました！\nメモ帳やメモアプリに貼り付けて保存してください。');
+    }).catch(()=>showJsonAlert(json));
+  } else {
+    showJsonAlert(json);
+  }
+}
+
+function showJsonAlert(json){
+  // フォールバック：テキストエリアで表示してコピーしやすくする
+  const dialog=document.getElementById('importDialog');
+  const ta=document.getElementById('importTextarea');
+  ta.value=json;
+  dialog.style.display='flex';
+  ta.select();
+  setTimeout(()=>ta.select(),100);
+}
+
+function showImportDialog(){
+  document.getElementById('importTextarea').value='';
+  document.getElementById('importDialog').style.display='flex';
+}
+
+function hideImportDialog(){
+  document.getElementById('importDialog').style.display='none';
+}
+
+function doImport(){
+  const text=document.getElementById('importTextarea').value.trim();
+  if(!text){alert('テキストが入力されていません');return;}
+  try{
+    const data=JSON.parse(text);
+    if(!Array.isArray(data))throw new Error('形式が正しくありません');
+    if(!confirm('現在のテンプレートを読み込んだデータで上書きしますか？'))return;
+    folders=data;
+    activeFolderId=folders[0].id;
+    activeTmplId=folders[0].templates[0]?.id||null;
+    saveData();clearResult();render();
+    hideImportDialog();
+    alert('読み込み完了しました！');
+  }catch(err){
+    alert('読み込みに失敗しました:\n'+err.message);
+  }
+}
+
+render();updateImageUI();
+</script>
+</body>
+</html>
